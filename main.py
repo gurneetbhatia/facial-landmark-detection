@@ -3,6 +3,7 @@ import urllib.request as urlreq
 import os
 import matplotlib.pyplot as plt
 from pylab import rcParams
+import numpy as np
 
 def detect_faces(image):
     # save the face detection algorithm's url in a variable
@@ -73,24 +74,40 @@ def load_image(url):
     plt.imshow(image_template)
     return faces, landmarks, image_template
 
-def get_lips(landmarks):
-    return landmarks[0][0][48:]
+def get_outer_lip(landmarks):
+    return landmarks[0][0][48:60]
+
+def get_inner_lip(landmarks):
+    return landmarks[0][0][60:]
 
 def draw_polygon(image, points):
-    for (index, point) in enumerate(points[:-1]):
+    '''for (index, point) in enumerate(points[:-1]):
         current_x, current_y = point
         next_x, next_y = points[index+1]
-        cv2.line(image, (current_x, current_y), (next_x, next_y), (0, 255, 0), 2)
+        cv2.line(image, (current_x, current_y), (next_x, next_y), (0, 255, 0), 2)'''
+    '''pts = np.array([[10,5],[20,30],[70,20],[50,10]], np.int32)
+    pts = pts.reshape((-1,1,2))
+    cv2.polylines(image, np.int32([points]), 1, (0,255,255))
+    #cv2.polylines(image,[pts],True,(0,255,255))
+    #cv2.polylines(image, points, True, (0, 255, 255))
+    plt.axis("off")
+    plt.imshow(image)'''
+    contours = np.int32([points])
+    for cnt in contours:
+        cv2.drawContours(image,[cnt],0,(255,255,255),1)
+
     plt.axis("off")
     plt.imshow(image)
+    return image
 
-image_data1 = load_image("image.jpeg")
-image_data2 = load_image("image1.png")
-#plt.show()
+
+
+image_data = load_image("image1.png")
 
 # the data for the lips in landmarks is from 50-68th index of landmarks[0][0]
-lips1 = get_lips(image_data1[1])
-lips2 = get_lips(image_data2[1])
-
-draw_polygon(image_data2[2], lips2)
+# lips1 = get_lips(image_data1[1])
+outer_lip = get_outer_lip(image_data[1])
+inner_lip = get_inner_lip(image_data[1])
+img = draw_polygon(image_data2[2], outer_lip)
+img = draw_polygon(img, inner_lip)
 plt.show()

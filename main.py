@@ -46,6 +46,16 @@ def detect_landmarks(faces, image):
     _, landmarks = landmark_detector.fit(image, faces)
     return landmarks
 
+def process_frame(frame):
+    image_template = frame.copy()
+    image_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = detect_faces(image_gray)
+    landmarks = detect_landmarks(faces, image_gray)
+    for landmark in landmarks:
+        for x, y in landmark[0]:
+            cv2.circle(image_template, (x, y), 1, (50, 255, 60), 1)
+    return faces, landmarks, image_template
+
 def load_image(url):
     # load the image
     pic = url
@@ -191,8 +201,38 @@ def scale_lips(initial_ratios, final_ratios, contour, image):
                     image_template[y+1, x] = colour
     return image_template
 
+def open_video_feed():
+    pic_data = load_image('image1.png')
+    pic_outer_lip = get_outer_lip(pic_data[1])
+    pic_contour = np.int32(pic_outer_lip)
+    initial_pic_ratios = get_lip_point_ratios(pic_contour, image_data[2])
 
-image_data = load_image("image1.png")
+    initial_feed_ratios = None
+    cap = cv2.VideoCapture(0)
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if ret == True:
+            current_ratios = []
+            feed_data = process_frame(frame)
+            feed_outer_lip = get_outer_lip(feed_data[1])
+            feed_contour = np.int32(feed_outer_lip)
+            if initial_feed_ratios is None:
+                initial_feed_ratios = get_lip_point_ratios(feed_contour, feed_data[2])
+            else:
+                current_ratios = get_lip_point_ratios(feed_contour, feed_data[2])
+            if current_ratios is not None:
+                # scale the lips on the image
+                pass
+            cv2.imshow('Frame', frame_data[2])
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
+        else:
+            break
+
+
+open_video_feed()
+
+'''image_data = load_image("image1.png")
 
 # the data for the lips in landmarks is from 50-68th index of landmarks[0][0]
 # lips1 = get_lips(image_data1[1])
@@ -215,4 +255,4 @@ print(final_ratios)
 im = scale_lips(initial_ratios, final_ratios, contour, image_data[2])
 plt.axis("off")
 plt.imshow(im)
-plt.show()
+plt.show()'''

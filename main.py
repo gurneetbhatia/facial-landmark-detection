@@ -100,6 +100,53 @@ def draw_polygon(image, points):
     plt.imshow(image)
     return image
 
+def get_polygon_area(contour, image):
+    xpts = sorted([point[0] for point in contour])
+    left_pt = xpts[0] # min
+    right_pt = xpts[-1] # max
+
+    ypts = sorted([point[1] for point in contour])
+    top_pt = ypts[0] # min
+    bottom_pt = ypts[-1] # max
+
+    points = []
+    for x in range(left_pt, right_pt):
+        for y in range(top_pt, bottom_pt):
+            # lies inside the contour or at the edge
+            if cv2.pointPolygonTest(contour, (x, y), False) >= 0:
+                points.append(image[x, y])
+    return np.array(points)
+
+def expand_lips(horizontal_factor, vertical_factor, contour, image):
+    xpts = sorted([point[0] for point in contour])
+    left_pt = xpts[0] # min
+    right_pt = xpts[-1] # max
+
+    ypts = sorted([point[1] for point in contour])
+    top_pt = ypts[0] # min
+    bottom_pt = ypts[-1] # max
+
+    imape_template = image.copy()
+    print(left_pt, right_pt, top_pt, bottom_pt)
+    print(image[0][0])
+    for x in range(left_pt, right_pt):
+        for y in range(top_pt, bottom_pt):
+            if cv2.pointPolygonTest(contour, (x, y), False) >= 0:
+                print("Colour at ("+str(x)+", "+str(y)+"):", image[y, x])
+
+def get_lip_point_ratios(contour, image):
+    # return the ratio between adjacent lip points on the contour
+    ratios = []
+    print(contour[0])
+    print(contour[1])
+    for (index, point) in enumerate(contour):
+        if index == len(contour) - 1:
+            ratios.append(contour[0]/contour[-1])
+            continue
+        ratios.append(contour[index]/contour[index+1])
+    return ratios
+
+
 
 
 image_data = load_image("image1.png")
@@ -108,6 +155,15 @@ image_data = load_image("image1.png")
 # lips1 = get_lips(image_data1[1])
 outer_lip = get_outer_lip(image_data[1])
 inner_lip = get_inner_lip(image_data[1])
-img = draw_polygon(image_data2[2], outer_lip)
+img = draw_polygon(image_data[2], outer_lip)
 img = draw_polygon(img, inner_lip)
+print("here", outer_lip[0])
+contour = np.int32(outer_lip)
+# print(get_polygon_area(contour, image_data[2]))
+
+vertical_factor = 2
+horizontal_factor = 1
+#expand_lips(horizontal_factor, vertical_factor, contour, image_data[2])
+print(get_lip_point_ratios(contour, image_data[2]))
+
 plt.show()

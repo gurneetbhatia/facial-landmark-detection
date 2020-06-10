@@ -134,11 +134,13 @@ def expand_lips(horizontal_factor, vertical_factor, contour, image):
             if cv2.pointPolygonTest(contour, (x, y), False) >= 0:
                 print("Colour at ("+str(x)+", "+str(y)+"):", image[y, x])
 
+def find_nearest(array, value):
+  idx = np.array([np.linalg.norm(x+y) for (x,y) in array-value]).argmin()
+  return idx
+
 def get_lip_point_ratios(contour, image):
     # return the ratio between adjacent lip points on the contour
     ratios = []
-    print(contour[0])
-    print(contour[1])
     for (index, point) in enumerate(contour):
         if index == len(contour) - 1:
             ratios.append(contour[0]/contour[-1])
@@ -146,7 +148,48 @@ def get_lip_point_ratios(contour, image):
         ratios.append(contour[index]/contour[index+1])
     return ratios
 
+def scale_lips(initial_ratios, final_ratios, contour, image):
+    xpts = sorted([point[0] for point in contour])
+    left_pt = xpts[0] # min
+    right_pt = xpts[-1] # max
+    xmid = (left_pt + right_pt)/2
 
+    ypts = sorted([point[1] for point in contour])
+    top_pt = ypts[0] # min
+    bottom_pt = ypts[-1] # max
+    ymid = (top_pt + bottom_pt)/2
+
+    # for horizontal expansion, look at ymid
+    # if the x < ymid, expand to the left, else expand to the right
+    # for vertical expansion, look at xmid
+    # if the y < xmid, expand towards the top, else towards the bottom
+    marked_indices = []
+    image_template = image.copy()
+    for x in range(left_pt, right_pt):
+        for y in range(top_pt, bottom_pt):
+            if cv2.pointPolygonTest(contour, (x, y), False) >= 0:
+                #print("Colour at ("+str(x)+", "+str(y)+"):", image[y, x])
+                colour = image[y, x]
+                # first find the horizontal expansion
+                #print("Closest to ("+str(x)+", "+str(y)+"): ", find_nearest(contour, [x, y]))
+                contour_pt = find_nearest(contour, [x, y])
+                final_ratio = final_ratios[contour_pt]/initial_ratios[contour_pt]
+                print("Final Ratio: ("+str(x)+", "+str(y)+"):", final_ratio)
+
+                # first expand horizontally
+                if x < ymid:
+                    # expand to the left
+                    image_template[y, x-1] = colour
+                else:
+                    # expand to the right
+                    image_template[y, x+1] = colour
+                if y < ymid:
+                    # expand towards the top
+                    image_template[y-1, x] = colour
+                else:
+                    # expand towards the bottom
+                    image_template[y+1, x] = colour
+    return image_template
 
 
 image_data = load_image("image1.png")
@@ -164,6 +207,12 @@ contour = np.int32(outer_lip)
 vertical_factor = 2
 horizontal_factor = 1
 #expand_lips(horizontal_factor, vertical_factor, contour, image_data[2])
-print(get_lip_point_ratios(contour, image_data[2]))
+initial_ratios = get_lip_point_ratios(contour, image_data[2])
+print(initial_ratios)
+final_ratios = list(map(lambda ratio: ratio * 2, initial_ratios))
+print(final_ratios)
 
+im = scale_lips(initial_ratios, final_ratios, contour, image_data[2])
+plt.axis("off")
+plt.imshow(im)
 plt.show()
